@@ -1,0 +1,12 @@
+pandas
+requests
+beautifulsoup4
+langchain
+openai
+tensorflow
+scikit-learn
+numpy
+plotly
+langchain
+lxml
+python-dotenv
