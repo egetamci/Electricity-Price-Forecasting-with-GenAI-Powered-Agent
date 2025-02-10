@@ -274,7 +274,7 @@ def data_collection_tool(inputs):
     return f"Data successfully collected for {start_date} to {end_date} and saved to '{filename}'"
 
 ###############################################################
-def create_sequences(data, window_size):
+def create_sequences(data, n_input=24*4*90, n_out=FORECAST_INTERVALS_NUM):
     # Initialize a Min-Max Scaler to scale the data between 0 and 1
     scaler = MinMaxScaler()
     
@@ -288,18 +288,21 @@ def create_sequences(data, window_size):
     X, y = [], []
     
     # Loop through the dataset to create domain "X" and range "y" sequences of size `window_size`
-    for i in range(len(data) - window_size):
-        # Append a sequence of features (window of size `window_size`) to X
-        X.append(scaled_data[i:i+window_size])
-        # Append the target value (next value after the window) to y
-        y.append(scaled_data[i+window_size, target_idx])
+    X, y = [], []
+    for i in range(len(combined_scaled)):
+        end_ix = i + n_input
+        out_end_ix = end_ix + n_out
+        if out_end_ix > len(combined_scaled):
+            break
+        seq_x = combined_scaled[i:end_ix, :-1]  # All features except target
+        seq_y = combined_scaled[end_ix:out_end_ix, -1]  # Only target
     
     # Calculate the split point to separate training and testing data
     split = len(X) - FORECAST_INTERVALS_NUM
     
     # Split the sequences into training and testing sets
-    X_train, X_test = X[:split], X[split:]
-    y_train, y_test = y[:split], y[split:]
+    X_train, X_test = seq_x[:split], seq_x[split:]
+    y_train, y_test = seq_y[:split], seq_y[split:]
     
     # Return the arrays for training and testing, along with the scaler and target index
     return np.array(X_train), np.array(X_test), np.array(y_train), np.array(y_test), scaler, target_idx
@@ -314,7 +317,7 @@ def create_model(X_train, y_train, X_test, y_test):
         # Add a Dense layer with 32 neurons and 'tanh' activation
         Dense(32, activation='tanh'),
         # Add an output layer with 1 neuron for the target variable
-        Dense(1)  
+        Dense(FORECAST_INTERVALS_NUM)  
     ])
 
     # Compile the model with Adam optimizer, Huber Loss, and mean absolute error as a metric
@@ -334,10 +337,9 @@ def create_model(X_train, y_train, X_test, y_test):
     return model
 
 
-def forecasting(data, window_size=24*4*90):
-    # Prepare sequences for training and testing using a 3-month time window (90 days).
+def forecasting(data, n_input, n_out):
     # Returns scaled training/testing data and additional info like the scaler and target index.
-    X_train, X_test, y_train, y_test, scaler, target_idx = create_sequences(data, window_size)
+    X_train, X_test, y_train, y_test, scaler, target_idx = create_sequences(data, n_input, n_out=)
     
     # Create and train the model using training data, and validate it using testing data.
     model = create_model(X_train, y_train, X_test, y_test)
@@ -369,7 +371,9 @@ def prediction_tool(inputs):
     global collected_data
     if collected_data is None:
         return "No predictions can be made. Please collect the data first."
-    predictions,y_test_original = forecasting(collected_data, window_size=24*4*90)
+    predictions,y_test_original = forecasting(collected_data, n_input = 24*4*90, n_out = 24*4)
+    # Prepare sequences for training and testing using a 3-month time window (90 days).
+
     forecast = predictions
     actual_prices = y_test_original
     actual_steps = list(range(len(actual_prices)))
