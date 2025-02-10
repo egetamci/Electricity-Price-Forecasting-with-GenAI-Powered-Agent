@@ -274,7 +274,7 @@ def data_collection_tool(inputs):
     return f"Data successfully collected for {start_date} to {end_date} and saved to '{filename}'"
 
 ###############################################################
-def create_sequences(data, n_input=24*4*90, n_out=FORECAST_INTERVALS_NUM):
+def create_sequences(data, n_input, n_out):
     # Initialize a Min-Max Scaler to scale the data between 0 and 1
     scaler = MinMaxScaler()
     
